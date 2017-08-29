@@ -52,8 +52,10 @@ class DeepQNetwork:
         l1 = self._add_layer(self.s, self.n_features, 10, tf.nn.sigmoid)
         self.q_eval = self._add_layer(l1, 10, self.n_actions, tf.nn.softplus)
 
+        print(self.q_eval)
+
         loss = tf.reduce_mean(tf.squared_difference(self.q_target, self.q_eval))
-        self.train_op = tf.train.RMSPropOptimizer(self.learning_rate).minimize(loss)
+        self.train_op = tf.train.RMSPropOptimizer(1).minimize(loss)
 
     @staticmethod
     def _add_layer(inputs, in_size, out_size, activation_function=None):
@@ -88,23 +90,28 @@ class DeepQNetwork:
     def learn(self):
         mini_batches = [self.memory[k:k + self.batch_size] for k in range(0, len(self.memory), self.batch_size)]
         for mini_batche in mini_batches:
-            print('mini_batche: \n', mini_batche)
+            # 当前环境
             s = mini_batche[:, :self.n_features]
+            # 作出选择后的环境
             s_ = mini_batche[:, -self.n_features:]
-            batch_index = np.arange(len(mini_batche), dtype=np.int32)
-            eval_act_index = mini_batche[:, self.n_features].astype(int)
+            # 环境反馈激励
             reward = mini_batche[:, self.n_features + 1]
 
-            q_eval, q_target = self.sess.run([self.q_eval,self.q_eval], feed_dict={self.s: s, self.s: s_})
+            # 要更改的行
+            batch_index = np.arange(len(mini_batche), dtype=np.int32)
+            # 要更改的列
+            eval_act_index = mini_batche[:, self.n_features].astype(int)
 
-            print('s: \n', s)
-            print('before eval: \n', q_eval)
+            # 计算当前环境的预测值
+            q_eval = self.sess.run(self.q_eval, feed_dict={self.s: s})
+            # 计算下一步环境的预测值
+            q_target = self.sess.run(self.q_eval, feed_dict={self.s: s_})
 
-            q_target[batch_index, eval_act_index] = reward + self.gamma * np.max(q_target, axis=1)
+            # 将下一步环境的激励赋值给当前环境
+            q_eval[batch_index, eval_act_index] = reward + self.gamma * np.max(q_target, axis=1)
 
-            self.sess.run(self.train_op, feed_dict={self.q_target: q_target, self.s: s})
-
-            print('after eval: \n', self.sess.run(self.q_eval, feed_dict={self.s: s}))
+            # 反向传播学习
+            self.sess.run(self.train_op, feed_dict={self.q_target: q_eval, self.s: s})
 
     @staticmethod
     def dis_rand(actions_value):

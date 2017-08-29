@@ -41,7 +41,7 @@ class CommandLine(object):
             else:
                 self.S -= 1
         self.render()
-        return self.S, R
+        return R
 
     def isDone(self):
         return self.S == self.N_STATES - 1

@@ -6,8 +6,12 @@ RL = RL = DeepQNetwork(2, 1, memory_size=1)
 env = CommandLine()
 
 while True:
-    action = RL.choose_action([env.S])
-    S, R = env.step(action)
+    S = [env.S]
+    action = RL.choose_action(S)
+    R = env.step(action)
+
+    RL.store_transition(S, action, R, env.S)
+
     if env.isDone():
         break
 
