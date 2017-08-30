@@ -39,7 +39,6 @@ class DeepQNetwork:
 
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
-        self.cost_his = []
 
     def _build_net(self):
 
@@ -52,20 +51,18 @@ class DeepQNetwork:
         l1 = self._add_layer(self.s, self.n_features, 10, tf.nn.sigmoid)
         self.q_eval = self._add_layer(l1, 10, self.n_actions, tf.nn.softplus)
 
-        print(self.q_eval)
-
         loss = tf.reduce_mean(tf.squared_difference(self.q_target, self.q_eval))
         self.train_op = tf.train.RMSPropOptimizer(1).minimize(loss)
 
     @staticmethod
     def _add_layer(inputs, in_size, out_size, activation_function=None):
-        Weights = tf.Variable(tf.random_normal([in_size, out_size]))
-        biases = tf.Variable(tf.zeros([1, out_size]) + 0.1)
-        Wx_plus_b = tf.matmul(inputs, Weights) + biases
+        weights = tf.Variable(tf.zeros([in_size, out_size]))
+        biases = tf.Variable(tf.zeros([1, out_size]))
+        wx_plus_b = tf.matmul(inputs, weights) + biases
         if activation_function is None:
-            outputs = Wx_plus_b
+            outputs = wx_plus_b
         else:
-            outputs = activation_function(Wx_plus_b)
+            outputs = activation_function(wx_plus_b)
         return outputs
 
     def choose_action(self, s):
@@ -104,6 +101,7 @@ class DeepQNetwork:
 
             # 计算当前环境的预测值
             q_eval = self.sess.run(self.q_eval, feed_dict={self.s: s})
+            print("\n", q_eval)
             # 计算下一步环境的预测值
             q_target = self.sess.run(self.q_eval, feed_dict={self.s: s_})
 
@@ -112,6 +110,10 @@ class DeepQNetwork:
 
             # 反向传播学习
             self.sess.run(self.train_op, feed_dict={self.q_target: q_eval, self.s: s})
+
+            print(s, ': \n', self.sess.run(self.q_eval, feed_dict={self.s: s}))
+
+            return
 
     @staticmethod
     def dis_rand(actions_value):
@@ -138,4 +140,17 @@ class DeepQNetwork:
             action = 'left'
 
         return action
+
+
+s = tf.placeholder(tf.float32, [None, 1])
+print(s)
+
+sess = tf.Session()
+sess.run(tf.global_variables_initializer())
+
+
+print(sess.run(s, {s: [[1]]}))
+
+s = [[1]]
+
 
